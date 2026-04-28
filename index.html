@@ -260,8 +260,9 @@
             font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+            touch-action: none;
         }
 
         .yes-btn:hover {
@@ -269,14 +270,21 @@
             box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
         }
 
+        .yes-btn:active {
+            transform: scale(0.95);
+        }
+
         .no-btn {
             position: fixed;
-            transition: all 0.2s ease;
             pointer-events: all;
         }
 
         .no-btn:hover {
             background: linear-gradient(135deg, #ff1493 0%, #ff69b4 100%);
+        }
+
+        .no-btn:active {
+            transform: scale(0.95);
         }
 
         /* Modal/Pop-up */
@@ -893,32 +901,72 @@
             }
         });
 
-        // No button - runs away from mouse
-        noBtn.addEventListener('mouseenter', function() {
-            const randomX = (Math.random() - 0.5) * 150;
-            const randomY = (Math.random() - 0.5) * 150;
-            
-            // Get button dimensions
+        // Function to move the No button away from cursor
+        function moveNoButtonAway(event) {
             const btnRect = noBtn.getBoundingClientRect();
             const btnWidth = btnRect.width;
             const btnHeight = btnRect.height;
-            
-            // Get viewport dimensions
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            
-            // Calculate new position
-            let newX = btnRect.left + randomX;
-            let newY = btnRect.top + randomY;
-            
-            // Clamp position to keep button within viewport
-            newX = Math.max(10, Math.min(newX, viewportWidth - btnWidth - 10));
-            newY = Math.max(10, Math.min(newY, viewportHeight - btnHeight - 10));
-            
-            // Apply fixed positioning
-            noBtn.style.position = 'fixed';
-            noBtn.style.left = newX + 'px';
-            noBtn.style.top = newY + 'px';
+
+            // Get cursor/touch position
+            let cursorX, cursorY;
+            if (event.touches) {
+                // Touch event
+                cursorX = event.touches[0].clientX;
+                cursorY = event.touches[0].clientY;
+            } else {
+                // Mouse event
+                cursorX = event.clientX;
+                cursorY = event.clientY;
+            }
+
+            // Calculate distance from button to cursor
+            const btnCenterX = btnRect.left + btnWidth / 2;
+            const btnCenterY = btnRect.top + btnHeight / 2;
+            const distX = btnCenterX - cursorX;
+            const distY = btnCenterY - cursorY;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+
+            // Only move if cursor is close enough
+            if (distance < 150) {
+                // Calculate direction away from cursor
+                const angle = Math.atan2(distY, distX);
+                const moveDistance = 150 - distance + 50;
+                
+                let newX = btnRect.left + Math.cos(angle) * moveDistance;
+                let newY = btnRect.top + Math.sin(angle) * moveDistance;
+                
+                // Clamp position to keep button within viewport
+                newX = Math.max(10, Math.min(newX, viewportWidth - btnWidth - 10));
+                newY = Math.max(10, Math.min(newY, viewportHeight - btnHeight - 10));
+                
+                // Apply fixed positioning
+                noBtn.style.position = 'fixed';
+                noBtn.style.left = newX + 'px';
+                noBtn.style.top = newY + 'px';
+            }
+        }
+
+        // Desktop: Mouse events
+        document.addEventListener('mousemove', function(e) {
+            if (btnGroup.style.display === 'flex') {
+                moveNoButtonAway(e);
+            }
+        });
+
+        // Mobile/Tablet: Touch events
+        document.addEventListener('touchmove', function(e) {
+            if (btnGroup.style.display === 'flex') {
+                moveNoButtonAway(e);
+            }
+        }, { passive: true });
+
+        // Fallback: Mouseenter for mobile devices that support it
+        noBtn.addEventListener('touchstart', function(e) {
+            if (btnGroup.style.display === 'flex') {
+                moveNoButtonAway(e);
+            }
         });
 
         // Yes button - show celebration
